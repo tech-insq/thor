@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="info">
+    <Properties>
+        <Property name="pattern">%d{yyyy-MM-dd HH:mm:ss} %tid %5p [%t] %c{-2}:%L.%M - %m%n</Property>
+        <Property name="displayName">thor</Property>
+        <Property name="logPath">/var/logs/thor</Property>
+    </Properties>
+    <Appenders>
+        <Console name="console" target="SYSTEM_OUT" follow="true">
+            <PatternLayout>
+                <pattern>${pattern}</pattern>
+            </PatternLayout>
+        </Console>
+        <File name="error" fileName="${logPath}/${displayName}_error.log" append="false">
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout>
+                <pattern>${pattern}</pattern>
+            </PatternLayout>
+        </File>
+        <File name="statFile" fileName="${logPath}/stat.log" append="true">
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY" />
+            <PatternLayout>
+                <pattern>${pattern}</pattern>
+            </PatternLayout>
+        </File>
+        <RollingFile name="rollingFile" fileName="${logPath}/${displayName}.log" filePattern="${logPath}/${displayName}_%d{yyyy-MM-dd}_%i.log">
+            <PatternLayout>
+                <pattern>${pattern}</pattern>
+            </PatternLayout>
+            <SizeBasedTriggeringPolicy size="100 MB" />
+        </RollingFile>
+        <RollingFile name="traceRollingFile" fileName="${logPath}/trace.log" filePattern="${logPath}/trace_%d{yyyy-MM-dd}_%i.log">
+            <PatternLayout>
+                <pattern>${pattern}</pattern>
+            </PatternLayout>
+            <SizeBasedTriggeringPolicy size="100 MB" />
+        </RollingFile>
+        <RollingFile name="watchRollingFile" fileName="${logPath}/watch.log" filePattern="${logPath}/watch_%d{yyyy-MM-dd}_%i.log">
+            <PatternLayout>
+                <pattern>${pattern}</pattern>
+            </PatternLayout>
+            <SizeBasedTriggeringPolicy size="100 MB" />
+        </RollingFile>
+    </Appenders>
+    <Loggers>
+        <Logger name="stat" level="INFO" additivity="false">
+            <AppenderRef ref="statFile"></AppenderRef>
+        </Logger>
+        <Logger name="trace" level="INFO" additivity="false">
+            <AppenderRef ref="traceRollingFile"></AppenderRef>
+        </Logger>
+        <Logger name="watch" level="INFO" additivity="false">
+            <AppenderRef ref="watchRollingFile"></AppenderRef>
+        </Logger>
+        <Root level="INFO">
+            <AppenderRef ref="console"></AppenderRef>
+            <AppenderRef ref="rollingFile"></AppenderRef>
+        </Root>
+    </Loggers>
+</configuration>
