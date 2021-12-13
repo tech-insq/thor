@@ -9,7 +9,7 @@ public class Application {
     public static void main(String []args){
         log.info("Testing >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
         long WAN = 10000;
-        long TEN_MIN = TimeUnit.MINUTES.toMillis(10);
+        long TEN_MIN = TimeUnit.MINUTES.toMillis(3);
         String[] algths = new String[]{"aimd","vaimd","vegas", "window", "gradient", "gradient2", "fix"};
         for(int type = 0; type < 3; type++) {
             for (String alg : algths) {

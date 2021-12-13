@@ -16,7 +16,7 @@ import java.util.function.Function;
 
 public class LimiterFactory {
     private static final Map<String, Function<Void, Limit>> mapInstance = getMap();
-    private static final boolean isWindowWrap = false;
+    private static final boolean isWindowWrap = true;
     public static <Context> Limiter<Context> createLimiter(String name){
         Function<Void, Limit> func = mapInstance.get(name);
         if(func != null) {
