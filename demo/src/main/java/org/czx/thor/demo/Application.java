@@ -11,12 +11,13 @@ public class Application {
         long WAN = 10000;
         long TEN_MIN = TimeUnit.MINUTES.toMillis(10);
         String[] algths = new String[]{"aimd","vaimd","vegas", "window", "gradient", "gradient2", "fix"};
-        //String[] algths = new String[]{"aimd","vaimd"};
-        for(String alg:algths){
-            log.info("Run alg:{} ......", alg);
-            Router router = new Router(alg);
-            router.upstream(false,100, 500 * WAN, TEN_MIN);
-            log.info("Run alg:{} over", alg);
+        for(int type = 0; type < 3; type++) {
+            for (String alg : algths) {
+                log.info("Run alg:{} ......", alg);
+                Router router = new Router(alg);
+                router.upstream(type, 100, 500 * WAN, TEN_MIN);
+                log.info("Run alg:{} over", alg);
+            }
         }
         log.info(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
     }

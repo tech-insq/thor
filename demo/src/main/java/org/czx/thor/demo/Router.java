@@ -1,5 +1,6 @@
 package org.czx.thor.demo;
 
+import com.google.common.util.concurrent.RateLimiter;
 import lombok.extern.slf4j.Slf4j;
 import org.czx.thor.limiter.LimiterFactory;
 import org.czx.thor.limiter.spi.Limiter;
@@ -56,14 +57,19 @@ public class Router {
         Thread.currentThread().setName(name);
     }
 
-    public void upstream(boolean isRand, int pools, long oldTps, long tl){
+    public void upstream(int upsType, int pools, long oldTps, long tl){
         long startTime = System.currentTimeMillis();
         WorkExecutor executor = new WorkExecutor(pools);
-        Context context = new Context(oldTps, tl);
-        if(isRand){
+        Context context;
+        if(upsType == 0){
+            context = new Context(oldTps, 0);
             randUps(context, executor);
+        }else if(upsType == 1){
+            context = new Context(0, tl);
+            continueUps(context, executor);
         }else{
-            normalUps(context, executor);
+            context = new Context(0, tl);
+            limitUps(context, executor);
         }
         long inQ = executor.getInQ();
         long rTps =  context.tps;
@@ -80,11 +86,15 @@ public class Router {
                  totalDone.get());
     }
 
-    private void normalUps(Context context, WorkExecutor executor){
+    private void limitUps(Context context, WorkExecutor executor){
+        log.info("limitUps >>>>");
         int print = 0;
         int reject = 0;
+        context.tps = 0;
+        RateLimiter rateLimiter = RateLimiter.create(10000);
         long endTime = System.currentTimeMillis() + context.timeLong;
-        while (System.currentTimeMillis() <= endTime){
+        while (System.currentTimeMillis() < endTime){
+            rateLimiter.acquire();
             context.tps = context.tps + 1;
             context.current = context.current + 1;
             Optional<Listener> optional = limiter.acquire(null);
@@ -100,7 +110,7 @@ public class Router {
             }
 
             print++;
-            if(print > 50000){
+            if(print > 10000){
                 int cLimit = limiter.getLimit();
                 int cInF = limiter.getInflight();
                 int doingQ = executor.getDoing();
@@ -109,15 +119,52 @@ public class Router {
                         cInF, doingQ, doingN, executor.getInQ());
                 print = 1;
             }
-            if(context.current >= 200){
+        }
+    }
+
+    private void continueUps(Context context, WorkExecutor executor){
+        log.info("continueUps >>>>");
+        int print = 0;
+        int reject = 0;
+        int current = 0;
+        context.tps = 0;
+        long endTime = System.currentTimeMillis() + context.timeLong;
+        while (System.currentTimeMillis() < endTime){
+            context.tps = context.tps + 1;
+            context.current = context.current + 1;
+            current++;
+            Optional<Listener> optional = limiter.acquire(null);
+            if(optional.isPresent()){
+                Runnable upsHandler = new UpsHandler(executor, new Session(optional));
+                if(executor.execute(upsHandler) != 0){
+                    context.drop = context.drop + 1;
+                    optional.get().onDropped();
+                }
+            }else{
+                context.failed = context.failed + 1;
+                reject = reject + 1;
+            }
+
+            print++;
+            if(print > 10000){
+                int cLimit = limiter.getLimit();
+                int cInF = limiter.getInflight();
+                int doingQ = executor.getDoing();
+                int doingN = doingWorkNum.get();
+                traceLog.info("Reject={}, Drop={}, Limit={}, InFli={}, Doing={}:{}, InQ={}",reject, context.drop, cLimit,
+                        cInF, doingQ, doingN, executor.getInQ());
+                print = 1;
+            }
+            if(current >= 200){
                 sleep(5);
-                context.current = 0;
+                current = 0;
                 reject = 0;
             }
         }
     }
 
     private void randUps(Context context, WorkExecutor executor){
+        log.info("randUps >>>>");
         int print = 0;
         Random random = new Random();
         while ((context.current < context.tps)){
